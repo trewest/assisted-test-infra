@@ -17,10 +17,16 @@ export PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES:-}
 
 mkdir -p build
 
-if [ "${DEPLOY_TARGET}" == "onprem" ]; then
-    if [ -n "$OPENSHIFT_INSTALL_RELEASE_IMAGE" ]; then
-        sed -i "s|OPENSHIFT_INSTALL_RELEASE_IMAGE=.*|OPENSHIFT_INSTALL_RELEASE_IMAGE=${OPENSHIFT_INSTALL_RELEASE_IMAGE}|" assisted-service/onprem-environment
+if [ "${OPENSHIFT_INSTALL_RELEASE_IMAGE}" != "" ]; then
+    ./assisted-service/tools/handle_ocp_versions.py --src ./assisted-service/default_ocp_versions.json \
+        --dest ./assisted-service/default_ocp_versions.json --ocp-override ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
+
+    if [ "${DEPLOY_TARGET}" == "onprem" ]; then
+        make -C assisted-service/ generate-onprem-environment generate-onprem-iso-ignition
     fi
+fi
+
+if [ "${DEPLOY_TARGET}" == "onprem" ]; then
     if [ -n "${INSTALLER_IMAGE:-}" ]; then
         echo "INSTALLER_IMAGE=${INSTALLER_IMAGE}" >> assisted-service/onprem-environment
     fi
