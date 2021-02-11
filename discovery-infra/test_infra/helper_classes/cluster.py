@@ -275,6 +275,30 @@ class Cluster:
             statuses=[consts.ClusterStatus.ERROR],
             timeout=consts.ERROR_TIMEOUT
         )
+    
+    def wait_for_cluster_to_be_in_preparing_for_install_status(self):
+        utils.wait_till_cluster_is_in_status(
+                client=self.api_client,
+                cluster_id=self.id,
+                statuses=[consts.ClusterStatus.PREPARING_FOR_INSTALLATION],
+                timeout=consts.PREPARE_FOR_INSTALL_TIMEOUT
+        )
+    
+    def wait_for_cluster_to_be_in_insufficent_status(self):
+        utils.wait_till_cluster_is_in_status(
+                client=self.api_client,
+                cluster_id=self.id,
+                statuses=[consts.ClusterStatus.INSUFFICIENT],
+                timeout=consts.INSUFFICIENT_TIMEOUT
+        )
+    
+    def wait_for_cluster_to_be_in_finalizing_status(self):
+        utils.wait_till_cluster_is_in_status(
+                client=self.api_client,
+                cluster_id=self.id,
+                statuses=[consts.ClusterStatus.FINALIZING],
+                timeout=consts.FINALIZING_TIMEOUT
+        )
 
     def wait_for_pending_for_input_status(self):
         utils.wait_till_cluster_is_in_status(
