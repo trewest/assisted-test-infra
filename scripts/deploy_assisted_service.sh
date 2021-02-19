@@ -6,6 +6,7 @@ source scripts/utils.sh
 export SERVICE_NAME=assisted-service
 export SERVICE_URL=$(get_main_ip)
 export ENABLE_AUTH=${ENABLE_AUTH:-false}
+export WITH_AMS_SUBSCRIPTIONS=${WITH_AMS_SUBSCRIPTIONS:-false}
 export NAMESPACE=${NAMESPACE:-assisted-installer}
 export SERVICE_PORT=$(( 6000 + $NAMESPACE_INDEX ))
 export SERVICE_BASE_URL=${SERVICE_BASE_URL:-"http://${SERVICE_URL}:${SERVICE_PORT}"}
@@ -22,7 +23,13 @@ if [ "${OPENSHIFT_INSTALL_RELEASE_IMAGE}" != "" ]; then
         --dest ./assisted-service/default_ocp_versions.json --ocp-override ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
 
     if [ "${DEPLOY_TARGET}" == "onprem" ]; then
-        make -C assisted-service/ generate-onprem-environment generate-onprem-iso-ignition
+        if [ -x "$(command -v docker)" ]; then
+            make -C assisted-service/ generate-ocp-version
+        else
+            ln -s $(which podman) /usr/bin/docker
+            make -C assisted-service/ generate-ocp-version
+            rm -f /usr/bin/docker
+        fi
     fi
 fi
 
@@ -55,8 +62,8 @@ elif [ "${DEPLOY_TARGET}" == "ocp" ]; then
     print_log "${SERVICE_NAME} can be reached at ${SERVICE_BASE_URL}"
 else
     print_log "Updating assisted_service params"
-    skipper run discovery-infra/update_assisted_service_cm.py ENABLE_AUTH=${ENABLE_AUTH}
-    skipper run "make -C assisted-service/ deploy-all" ${SKIPPER_PARAMS} DEPLOY_TAG=${DEPLOY_TAG} DEPLOY_MANIFEST_PATH=${DEPLOY_MANIFEST_PATH} DEPLOY_MANIFEST_TAG=${DEPLOY_MANIFEST_TAG} NAMESPACE=${NAMESPACE} ENABLE_AUTH=${ENABLE_AUTH} PROFILE=${PROFILE}
+    skipper run discovery-infra/update_assisted_service_cm.py ENABLE_AUTH=${ENABLE_AUTH} WITH_AMS_SUBSCRIPTIONS=${WITH_AMS_SUBSCRIPTIONS}
+    skipper run "make -C assisted-service/ deploy-all" ${SKIPPER_PARAMS} DEPLOY_TAG=${DEPLOY_TAG} DEPLOY_MANIFEST_PATH=${DEPLOY_MANIFEST_PATH} DEPLOY_MANIFEST_TAG=${DEPLOY_MANIFEST_TAG} NAMESPACE=${NAMESPACE} ENABLE_AUTH=${ENABLE_AUTH} WITH_AMS_SUBSCRIPTIONS=${WITH_AMS_SUBSCRIPTIONS} PROFILE=${PROFILE}
 
     print_log "Wait till ${SERVICE_NAME} api is ready"
     wait_for_url_and_run "$(minikube service ${SERVICE_NAME} --url -p $PROFILE -n ${NAMESPACE})" "echo \"waiting for ${SERVICE_NAME}\""
